@@ -1,25 +1,28 @@
 <?php
-include_once "../../mainfile.php";
-include_once "function.php";
+use Xmf\Request;
+use XoopsModules\Tadtools\Utility;
+
+require_once dirname(dirname(__DIR__)) . '/mainfile.php';
+require_once __DIR__ . '/function.php';
+
+$tad_meeting_sn = Request::getInt('tad_meeting_sn');
+
+$tad_meeting = get_tad_meeting($tad_meeting_sn);
 
 //判斷目前使用者是否有：觀看會議內容
-$read_report = power_chk("tad_meeting", 3);
-if (!$read_report) {
+$view_meeting = Utility::power_chk('view_meeting', $tad_meeting['tad_meeting_cate_sn']);
+if (!$view_meeting) {
     redirect_header('index.php', 3, _TAD_PERMISSION_DENIED);
 }
 
 set_time_limit(0);
-ini_set("memory_limit", "150M");
-
-$tad_meeting_sn = intval($_REQUEST['tad_meeting_sn']);
-
-$tad_meeting = get_tad_meeting($tad_meeting_sn);
+ini_set('memory_limit', '150M');
 
 //取得分類資料(tad_meeting_cate)
 $tad_meeting_cate_arr = get_tad_meeting_cate($tad_meeting['tad_meeting_cate_sn']);
 
 $page_title = "{$xoopsModuleConfig['file_title']}{$tad_meeting['tad_meeting_title']}";
-$filename   = str_replace(" ", "", $page_title);
+$filename = str_replace(' ', '', $page_title);
 
 require_once XOOPS_ROOT_PATH . '/modules/tadtools/tcpdf/tcpdf.php';
 $pdf = new TCPDF('PDF_PAGE_ORIENTATION', PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false);
@@ -49,7 +52,7 @@ $pdf->MultiCell(60, 10, $tad_meeting['tad_meeting_chairman'], 1, 'C', false, 1, 
 
 $pdf->Ln(2);
 
-$meeting_data = list_tad_meeting_data($tad_meeting_sn, "return", 'file_url');
+$meeting_data = list_tad_meeting_data($tad_meeting_sn, 'return', 'file_url');
 foreach ($meeting_data as $data) {
     $pdf->SetFont('droidsansfallback', '', 12, '', true); //設定字型
     $pdf->setCellHeightRatio(1);
@@ -57,16 +60,16 @@ foreach ($meeting_data as $data) {
 
     $pdf->SetFont('droidsansfallback', '', 10, '', true); //設定字型
     $pdf->setCellHeightRatio(1.8);
-    $tad_meeting_data_content = $data['tad_meeting_data_content'] ? $data['tad_meeting_data_content'] : _MD_TADMEETIN_NONE;
-    $pdf->MultiCell(172, 13, $tad_meeting_data_content, 0, 'J', false, 1, $pdf->getX() + 8, null, true, 0, false, true);
+    $tad_meeting_data_content = $data['tad_meeting_data_content'] ?: _MD_TADMEETIN_NONE;
+    $pdf->MultiCell(172, 13, $tad_meeting_data_content, 0, 'J', false, 1, $pdf->GetX() + 8, null, true, 0, false, true);
 
     if ($data['list_file']) {
         $pdf->SetFont('droidsansfallback', '', 10, '', true); //設定字型
         $pdf->setCellHeightRatio(1.5);
-        $pdf->writeHTMLCell(172, 13, $pdf->getX(), $pdf->getY(), $data['list_file'], 0, 1, false);
+        $pdf->writeHTMLCell(172, 13, $pdf->GetX(), $pdf->GetY(), $data['list_file'], 0, 1, false);
     } else {
         $pdf->Ln(2);
     }
 }
 $filename = iconv('UTF-8', 'Big5', $filename);
-$pdf->Output("{$filename}.pdf", 'D');
+$pdf->Output(" {$filename}.pdf", 'D');
